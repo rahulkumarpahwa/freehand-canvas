@@ -63,7 +63,7 @@ export class DrawingComponent {
   }));
 
   tools: any = {
-    pen1: this.getDefaultTool('#000000', 16),
+    pen1: this.getDefaultTool('#eb454a', 16),
     pen2: this.getDefaultTool('#3b82f6', 16),
     highlighter: this.getDefaultTool('#ffeb3b', 30, 0.4),
     eraser: { size: 40 },
@@ -80,14 +80,14 @@ export class DrawingComponent {
       easing: 'linear',
       start: { taper: 0, easing: 'linear' },
       end: { taper: 0, easing: 'linear' },
-      outline: { color: '#000000', width: 0 },
+      outline: { color: '#9747ff', width: 0 },
     };
   }
 
   resetPenSettings() {
     if (this.activeTool === 'eraser') return;
     const defaults = {
-      pen1: { color: '#000000', size: 16 },
+      pen1: { color: '#eb454a', size: 16 },
       pen2: { color: '#3b82f6', size: 16 },
       highlighter: { color: '#ffeb3b', size: 30, opacity: 0.4 },
     };

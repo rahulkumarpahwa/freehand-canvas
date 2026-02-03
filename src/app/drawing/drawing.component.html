@@ -14,7 +14,7 @@
       ></button>
       <button
         pButton
-        icon="pi pi-palette"
+        icon="pi pi-pencil"
         label="Pen 2"
         [class.p-button-outlined]="activeTool !== 'pen2'"
         (click)="activeTool = 'pen2'"
@@ -42,7 +42,7 @@
 
       <button
         pButton
-        icon="pi pi-undo"
+        icon="pi pi-chevron-left"
         (click)="undo()"
         [disabled]="allStrokes.length === 0"
         class="p-button-text p-button-plain"
@@ -50,11 +50,19 @@
       ></button>
       <button
         pButton
-        icon="pi pi-replay"
+        icon="pi pi-chevron-right"
         (click)="redo()"
         [disabled]="redoStack.length === 0"
         class="p-button-text p-button-plain"
         title="Redo"
+      ></button>
+      <div class="border-left-1 border-300 h-2rem mx-2"></div>
+      <button
+        pButton
+        icon="pi pi-times"
+        (click)="clearCanvas()"
+        class="p-button-text p-button-danger"
+        title="Clear All"
       ></button>
       <button
         pButton
@@ -63,13 +71,8 @@
         class="p-button-text p-button-plain"
         title="Download SVG"
       ></button>
-      <button
-        pButton
-        icon="pi pi-trash"
-        (click)="clearCanvas()"
-        class="p-button-text p-button-danger"
-        title="Clear All"
-      ></button>
+      
+      
     </div>
 
     <div
@@ -194,7 +197,7 @@
 
       <div class="flex flex-column gap-3 mt-4">
         <div class="flex align-items-center justify-content-between">
-          <label class="text-xs font-bold">Fill Color</label>
+          <label class="">Fill Color</label>
           <input
             type="color"
             [(ngModel)]="tools[activeTool].color"
@@ -212,7 +215,7 @@
           <span class="val">{{ tools[activeTool].outline.width }}</span>
         </div>
         <div class="flex align-items-center justify-content-between">
-          <label class="text-xs font-bold">Stroke Color</label>
+          <label class="">Stroke Color</label>
           <input
             type="color"
             [(ngModel)]="tools[activeTool].outline.color"
