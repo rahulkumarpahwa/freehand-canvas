@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { getStroke } from 'perfect-freehand';
 
 interface DrawingStroke {
@@ -49,6 +49,10 @@ const EASINGS: Record<string, (t: number) => number> = {
 })
 export class DrawingComponent {
   @ViewChild('svgElement') svgElement!: ElementRef<SVGElement>;
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  isDragging = false;
+  sidebarOpen = false;
 
   allStrokes: DrawingStroke[] = [];
   redoStack: DrawingStroke[] = [];
@@ -127,6 +131,116 @@ export class DrawingComponent {
     link.href = url;
     link.download = `drawing-${Date.now()}.svg`;
     link.click();
+  }
+
+  // --- SVG IMPORT LOGIC ---
+
+  triggerFileInput() {
+    this.fileInput.nativeElement.click();
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.loadSVGFile(input.files[0]);
+      input.value = ''; // Reset to allow re-importing same file
+    }
+  }
+
+  @HostListener('dragover', ['$event'])
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  @HostListener('dragleave', ['$event'])
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  @HostListener('drop', ['$event'])
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+        this.loadSVGFile(file);
+      }
+    }
+  }
+
+  private loadSVGFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const svgContent = e.target?.result as string;
+      this.parseSVGContent(svgContent);
+    };
+    reader.readAsText(file);
+  }
+
+  private parseSVGContent(svgContent: string) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+    const svgElement = doc.querySelector('svg');
+
+    if (!svgElement) {
+      console.error('Invalid SVG file');
+      return;
+    }
+
+    // Find all path elements in the SVG
+    const paths = svgElement.querySelectorAll('path');
+
+    paths.forEach((path) => {
+      const d = path.getAttribute('d');
+      if (d) {
+        const fill = path.getAttribute('fill') || '#000000';
+        const fillOpacity = parseFloat(path.getAttribute('fill-opacity') || '1');
+        const stroke = path.getAttribute('stroke') || 'none';
+        const strokeWidth = parseFloat(path.getAttribute('stroke-width') || '0');
+
+        // Extract points from the path (approximate for editing)
+        const points = this.extractPointsFromPath(d);
+
+        this.allStrokes.push({
+          points: points,
+          path: d,
+          color: fill === 'none' ? '#000000' : fill,
+          opacity: fillOpacity,
+          outlineColor: stroke === 'none' ? '#000000' : stroke,
+          outlineWidth: strokeWidth,
+        });
+      }
+    });
+
+    // Clear redo stack after import
+    this.redoStack = [];
+  }
+
+  private extractPointsFromPath(d: string): number[][] {
+    // Extract coordinate pairs from the path data for eraser functionality
+    const points: number[][] = [];
+    const regex = /[-+]?[0-9]*\.?[0-9]+/g;
+    const numbers = d.match(regex);
+
+    if (numbers) {
+      for (let i = 0; i < numbers.length - 1; i += 2) {
+        const x = parseFloat(numbers[i]);
+        const y = parseFloat(numbers[i + 1]);
+        if (!isNaN(x) && !isNaN(y)) {
+          points.push([x, y, 0.5]); // Default pressure
+        }
+      }
+    }
+
+    return points;
   }
 
   // --- CORE DRAWING LOGIC ---
