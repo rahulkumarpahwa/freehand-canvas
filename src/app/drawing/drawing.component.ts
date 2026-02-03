@@ -1,5 +1,7 @@
-import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { getStroke } from 'perfect-freehand';
+import { environment } from '../../environments/environment';
 
 interface DrawingStroke {
   points: number[][];
@@ -47,12 +49,13 @@ const EASINGS: Record<string, (t: number) => number> = {
   templateUrl: './drawing.component.html',
   styleUrls: ['./drawing.component.scss'],
 })
-export class DrawingComponent {
+export class DrawingComponent implements OnInit {
   @ViewChild('svgElement') svgElement!: ElementRef<SVGElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   isDragging = false;
   sidebarOpen = false;
+  isSending = false;
 
   allStrokes: DrawingStroke[] = [];
   redoStack: DrawingStroke[] = [];
@@ -72,6 +75,40 @@ export class DrawingComponent {
     highlighter: this.getDefaultTool('#ffeb3b', 30, 0.4),
     eraser: { size: 40 },
   };
+
+  constructor(private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    this.route.queryParams.subscribe((params) => {
+      // Check for base64 encoded SVG
+      if (params['svg']) {
+        try {
+          const svgContent = atob(params['svg']);
+          this.parseSVGContent(svgContent);
+        } catch (e) {
+          console.error('Invalid base64 SVG data', e);
+        }
+      }
+      // Check for SVG URL
+      if (params['url']) {
+        this.loadSVGFromUrl(params['url']);
+      }
+    });
+  }
+
+  private loadSVGFromUrl(url: string) {
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to fetch SVG');
+        return response.text();
+      })
+      .then((svgContent) => {
+        this.parseSVGContent(svgContent);
+      })
+      .catch((error) => {
+        console.error('Error loading SVG from URL:', error);
+      });
+  }
 
   private getDefaultTool(color: string, size: number, opacity: number = 1) {
     return {
@@ -131,6 +168,41 @@ export class DrawingComponent {
     link.href = url;
     link.download = `drawing-${Date.now()}.svg`;
     link.click();
+  }
+
+  sendToApi() {
+    if (this.isSending) return;
+    
+    const svgEl = this.svgElement.nativeElement;
+    svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const svgData = svgEl.outerHTML;
+    const preface = '<?xml version="1.0" standalone="no"?>\r\n';
+    const fullSvg = preface + svgData;
+
+    this.isSending = true;
+
+    fetch(environment.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        svg: fullSvg,
+        timestamp: Date.now(),
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to send SVG');
+        return response.json();
+      })
+      .then((data) => {
+        console.log('SVG sent successfully:', data);
+        this.isSending = false;
+      })
+      .catch((error) => {
+        console.error('Error sending SVG to API:', error);
+        this.isSending = false;
+      });
   }
 
   // --- SVG IMPORT LOGIC ---

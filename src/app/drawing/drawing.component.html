@@ -102,6 +102,14 @@
         class="p-button-text p-button-plain"
         title="Download SVG"
       ></button>
+      <button
+        pButton
+        [icon]="isSending ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+        (click)="sendToApi()"
+        [disabled]="isSending || allStrokes.length === 0"
+        class="p-button-text p-button-plain"
+        title="Send to API"
+      ></button>
    
      
       <input
