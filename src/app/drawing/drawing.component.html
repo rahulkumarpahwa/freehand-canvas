@@ -292,10 +292,10 @@
     <path
       *ngIf="previewPath"
       [attr.d]="previewPath"
-      [attr.fill]="tools[activeTool].color"
-      [attr.fill-opacity]="tools[activeTool].opacity"
-      [attr.stroke]="tools[activeTool].outline.color"
-      [attr.stroke-width]="tools[activeTool].outline.width"
+      [attr.fill]="activeDrawingTool.color"
+      [attr.fill-opacity]="activeDrawingTool.opacity"
+      [attr.stroke]="activeDrawingTool.outline.color"
+      [attr.stroke-width]="activeDrawingTool.outline.width"
       stroke-linejoin="round"
     />
   </svg>
